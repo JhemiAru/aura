@@ -80,6 +80,7 @@
         .sidebar.collapsed .user-info {
             display: none;
         }
+        
 
         .sidebar.collapsed .nav-link i {
             margin-right: 0;
