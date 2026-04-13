@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role_id',  // <--- AGREGADO: Para asignar rol al usuario
     ];
 
     /**
@@ -45,5 +46,13 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Relación: Un usuario pertenece a un rol
+     */
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
     }
 }
