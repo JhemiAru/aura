@@ -835,158 +835,24 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <br>
     <script>
-        // ============ DATOS DE EJEMPLO ============
-        let members = [
-            { id: 1, name: "Carlos Rodríguez", email: "carlos@email.com", phone: "+34 611 223 344", plan: "VIP", status: "activo", expiryDate: "2024-12-31", attendance: 45 },
-            { id: 2, name: "María González", email: "maria@email.com", phone: "+34 622 334 455", plan: "Premium", status: "activo", expiryDate: "2024-11-30", attendance: 38 },
-            { id: 3, name: "Juan Pérez", email: "juan@email.com", phone: "+34 633 445 566", plan: "Básico", status: "activo", expiryDate: "2024-10-15", attendance: 30 },
-            { id: 4, name: "Ana Martínez", email: "ana@email.com", phone: "+34 644 556 677", plan: "Élite", status: "inactivo", expiryDate: "2024-09-20", attendance: 25 },
-            { id: 5, name: "Luis Fernández", email: "luis@email.com", phone: "+34 655 667 788", plan: "Premium", status: "activo", expiryDate: "2024-12-10", attendance: 52 }
-        ];
-        
-        let trainers = [
-            { id: 1, name: "Laura Sánchez", specialty: "Yoga", email: "laura@gym.com", phone: "+34 600 111 222" },
-            { id: 2, name: "Miguel Torres", specialty: "CrossFit", email: "miguel@gym.com", phone: "+34 600 333 444" },
-            { id: 3, name: "Elena Ruiz", specialty: "Spinning", email: "elena@gym.com", phone: "+34 600 555 666" }
-        ];
-        
-        let classes = [
-            { id: 1, name: "Yoga Matutino", trainer: "Laura Sánchez", time: "09:00", capacity: 20, enrolled: 15 },
-            { id: 2, name: "CrossFit", trainer: "Miguel Torres", time: "18:00", capacity: 15, enrolled: 12 },
-            { id: 3, name: "Spinning", trainer: "Elena Ruiz", time: "19:00", capacity: 25, enrolled: 20 }
-        ];
-        
-        let payments = [
-            { id: 1, memberId: 1, memberName: "Carlos Rodríguez", amount: 80, concept: "Membresía", date: "2024-01-15", status: "pagado" },
-            { id: 2, memberId: 2, memberName: "María González", amount: 50, concept: "Membresía", date: "2024-01-14", status: "pagado" },
-            { id: 3, memberId: 3, memberName: "Juan Pérez", amount: 30, concept: "Membresía", date: "2024-01-13", status: "pagado" }
-        ];
-        
-        let equipment = [
-            { id: 1, name: "Cinta de Correr", quantity: 5, status: "Bueno" },
-            { id: 2, name: "Bicicleta Estática", quantity: 8, status: "Bueno" },
-            { id: 3, name: "Pesas", quantity: 20, status: "Regular" }
-        ];
-        
-        let attendances = [];
-        let nextMemberId = 6;
-        let nextTrainerId = 4;
-        let nextClassId = 4;
-        let nextPaymentId = 4;
-        let nextEquipmentId = 4;
-        
-        // ============ FUNCIONES GENERALES ============
-        function updateDateTime() {
-            const now = new Date();
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-            $('#currentDateTime').text(now.toLocaleDateString('es-ES', options));
+    // ============ CONFIGURACIÓN ============
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
-        
-        function toggleSidebar() {
-            $('#sidebar').toggleClass('collapsed');
-            $('#mainContent').toggleClass('expanded');
-            const icon = $('#sidebarIcon');
-            if ($('#sidebar').hasClass('collapsed')) {
-                icon.removeClass('fa-chevron-left').addClass('fa-chevron-right');
-            } else {
-                icon.removeClass('fa-chevron-right').addClass('fa-chevron-left');
-            }
-        }
-        
-        function showSection(section) {
-            $('#dashboardSection, #membersSection, #trainersSection, #classesSection, #attendanceSection, #paymentsSection, #equipmentSection, #reportsSection, #settingsSection').hide();
-            
-            if (section === 'dashboard') {
-                $('#dashboardSection').show();
-                $('#pageTitle').text('Dashboard');
-                updateStats();
-                updateCharts();
-                loadRecentActivities();
-            } else if (section === 'members') {
-                $('#membersSection').show();
-                $('#pageTitle').text('Miembros');
-                loadMembers();
-            } else if (section === 'trainers') {
-                $('#trainersSection').show();
-                $('#pageTitle').text('Entrenadores');
-                loadTrainers();
-            } else if (section === 'classes') {
-                $('#classesSection').show();
-                $('#pageTitle').text('Clases');
-                loadClasses();
-            } else if (section === 'attendance') {
-                $('#attendanceSection').show();
-                $('#pageTitle').text('Asistencias');
-                loadAttendance();
-            } else if (section === 'payments') {
-                $('#paymentsSection').show();
-                $('#pageTitle').text('Pagos');
-                loadPayments();
-            } else if (section === 'equipment') {
-                $('#equipmentSection').show();
-                $('#pageTitle').text('Equipos');
-                loadEquipment();
-            } else if (section === 'reports') {
-                $('#reportsSection').show();
-                $('#pageTitle').text('Reportes');
-            } else if (section === 'settings') {
-                $('#settingsSection').show();
-                $('#pageTitle').text('Configuración');
-            }
-            
-            $('.nav-link').removeClass('active');
-            $(`.nav-link:contains('${$('#pageTitle').text()}')`).addClass('active');
-        }
-        
-        // ============ ESTADÍSTICAS ============
-        function updateStats() {
-            $('#totalMembers').text(members.length);
-            const activeMembers = members.filter(m => m.status === 'activo').length;
-            const monthlyIncome = payments.reduce((sum, p) => sum + p.amount, 0);
-            $('#monthlyIncome').text(`$${monthlyIncome}`);
-            $('#activeClasses').text(classes.length);
-            $('#retentionRate').text(Math.round((activeMembers / members.length) * 100) + '%');
-        }
-        
-        function updateCharts() {
-            // Revenue Chart
-            const ctx1 = document.getElementById('revenueChart').getContext('2d');
-            new Chart(ctx1, {
-                type: 'line',
-                data: {
-                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
-                    datasets: [{ label: 'Ingresos', data: [1200, 1350, 1500, 1800, 2100, 2450], borderColor: '#00d2ff', backgroundColor: 'rgba(0,210,255,0.1)' }]
-                },
-                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: 'white' } } } }
-            });
-            
-            // Gender Chart
-            const ctx2 = document.getElementById('genderChart').getContext('2d');
-            new Chart(ctx2, {
-                type: 'doughnut',
-                data: { labels: ['Hombres', 'Mujeres'], datasets: [{ data: [3, 2], backgroundColor: ['#00d2ff', '#ef476f'] }] },
-                options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } } }
-            });
-        }
-        
-        function loadRecentActivities() {
-            const html = members.slice(0, 5).map(m => `
-                <tr><td>${m.name}</td><td>Registro de asistencia</td><td>${new Date().toLocaleDateString()}</td><td><span class="badge bg-success">Completado</span></td></tr>
-            `).join('');
-            $('#recentActivities').html(html);
-        }
-        
-        // ============ MIEMBROS ============
-        function loadMembers() {
+    });
+
+    // ============ CARGAR DATOS DESDE LA BD ============
+    function loadMembers() {
+        $.get('/api/members', function(members) {
             let html = members.map(m => `
                 <tr>
                     <td>${m.id}</td>
                     <td><strong>${m.name}</strong><br><small>${m.email}</small></td>
-                    <td>${m.phone}</td>
+                    <td>${m.phone || '-'}</td>
                     <td><span class="badge bg-info">${m.plan}</span></td>
-                    <td>${m.expiryDate}</td>
+                    <td>${m.expiry_date || 'N/A'}</td>
                     <td><span class="badge ${m.status === 'activo' ? 'bg-success' : 'bg-secondary'}">${m.status}</span></td>
                     <td>
                         <button class="btn btn-sm btn-info me-1" onclick="viewMember(${m.id})"><i class="fas fa-eye"></i></button>
@@ -996,63 +862,11 @@
                 </tr>
             `).join('');
             $('#membersTableBody').html(html);
-        }
-        
-        function saveMember() {
-            const memberData = {
-                id: $('#memberId').val() || nextMemberId++,
-                name: $('#memberName').val(),
-                email: $('#memberEmail').val(),
-                phone: $('#memberPhone').val(),
-                plan: $('#memberPlan').val(),
-                status: 'activo',
-                expiryDate: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
-                attendance: 0
-            };
-            
-            if ($('#memberId').val()) {
-                const index = members.findIndex(m => m.id == memberData.id);
-                if (index !== -1) members[index] = memberData;
-                Swal.fire('Actualizado', 'Miembro actualizado', 'success');
-            } else {
-                members.push(memberData);
-                Swal.fire('Creado', 'Miembro registrado exitosamente', 'success');
-            }
-            
-            $('#memberModal').modal('hide');
-            resetMemberForm();
-            loadMembers();
-            updateStats();
-        }
-        
-        function editMember(id) {
-            const member = members.find(m => m.id === id);
-            if (member) {
-                $('#memberId').val(member.id);
-                $('#memberName').val(member.name);
-                $('#memberEmail').val(member.email);
-                $('#memberPhone').val(member.phone);
-                $('#memberPlan').val(member.plan);
-                $('#memberModal').modal('show');
-            }
-        }
-        
-        function viewMember(id) {
-            const member = members.find(m => m.id === id);
-            Swal.fire({ title: member.name, html: `<p>Email: ${member.email}</p><p>Teléfono: ${member.phone}</p><p>Plan: ${member.plan}</p>`, icon: 'info' });
-        }
-        
-        function deleteMember(id) {
-            Swal.fire({ title: '¿Eliminar?', text: 'No se puede deshacer', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Sí' }).then((result) => {
-                if (result.isConfirmed) { members = members.filter(m => m.id !== id); loadMembers(); updateStats(); Swal.fire('Eliminado', '', 'success'); }
-            });
-        }
-        
-        function resetMemberForm() { $('#memberForm')[0].reset(); $('#memberId').val(''); }
-        function exportMembers() { Swal.fire('Exportado', 'Datos exportados a Excel', 'success'); }
-        
-        // ============ ENTRENADORES ============
-        function loadTrainers() {
+        });
+    }
+
+    function loadTrainers() {
+        $.get('/api/trainers', function(trainers) {
             let html = trainers.map(t => `
                 <div class="col-md-4 mb-3">
                     <div class="trainer-card">
@@ -1065,194 +879,234 @@
                 </div>
             `).join('');
             $('#trainersGrid').html(html);
-        }
-        
-        function saveTrainer() {
-            const trainer = {
-                id: nextTrainerId++,
-                name: $('#trainerName').val(),
-                specialty: $('#trainerSpecialty').val(),
-                email: $('#trainerEmail').val(),
-                phone: ''
-            };
-            trainers.push(trainer);
-            $('#trainerModal').modal('hide');
-            loadTrainers();
-            Swal.fire('Creado', 'Entrenador agregado', 'success');
-            resetTrainerForm();
-        }
-        
-        function deleteTrainer(id) { trainers = trainers.filter(t => t.id !== id); loadTrainers(); Swal.fire('Eliminado', '', 'success'); }
-        function resetTrainerForm() { $('#trainerForm')[0].reset(); }
-        
-        // ============ CLASES ============
-        function loadClasses() {
-            let html = classes.map(c => `
-                <div class="col-md-4 mb-3">
-                    <div class="class-card">
-                        <h5 class="text-white">${c.name}</h5>
-                        <p><i class="fas fa-user"></i> ${c.trainer}</p>
-                        <p><i class="fas fa-clock"></i> ${c.time}</p>
-                        <p><i class="fas fa-users"></i> ${c.enrolled}/${c.capacity}</p>
-                        <button class="btn btn-sm btn-danger" onclick="deleteClass(${c.id})"><i class="fas fa-trash"></i> Eliminar</button>
-                    </div>
-                </div>
-            `).join('');
-            $('#classesGrid').html(html);
-        }
-        
-        function saveClass() {
-            const newClass = {
-                id: nextClassId++,
-                name: $('#className').val(),
-                trainer: $('#classTrainer option:selected').text() || 'Sin asignar',
-                time: $('#classTime').val(),
-                capacity: $('#classCapacity').val(),
-                enrolled: 0
-            };
-            classes.push(newClass);
-            $('#classModal').modal('hide');
-            loadClasses();
-            Swal.fire('Creado', 'Clase agregada', 'success');
-            resetClassForm();
-        }
-        
-        function deleteClass(id) { classes = classes.filter(c => c.id !== id); loadClasses(); Swal.fire('Eliminado', '', 'success'); }
-        function resetClassForm() { $('#classForm')[0]?.reset(); }
-        
-        // ============ ASISTENCIAS ============
-        function loadAttendance() {
-            const date = $('#attendanceDateFilter').val();
-            const filtered = attendances.filter(a => a.date === date);
-            let html = filtered.map(a => `<tr><td>${a.time}</td><td>${a.memberName}</td><td>${a.plan}</td><td><span class="badge bg-success">Presente</span></td></tr>`).join('');
-            if (!html) html = '<tr><td colspan="4" class="text-center">No hay asistencias registradas</td></tr>';
-            $('#attendanceTableBody').html(html);
-        }
-        
-        function registerAttendance() {
-            Swal.fire({ title: 'Registrar Asistencia', input: 'select', inputOptions: members.filter(m => m.status === 'activo').reduce((acc, m) => { acc[m.id] = m.name; return acc; }, {}), showCancelButton: true }).then((result) => {
-                if (result.isConfirmed) {
-                    const member = members.find(m => m.id == result.value);
-                    attendances.push({ id: attendances.length+1, memberId: member.id, memberName: member.name, plan: member.plan, date: $('#attendanceDateFilter').val(), time: new Date().toLocaleTimeString() });
-                    loadAttendance();
-                    Swal.fire('Registrado', 'Asistencia registrada', 'success');
-                }
-            });
-        }
-        
-        // ============ PAGOS ============
-        function loadPayments() {
+        });
+    }
+
+    function loadPayments() {
+        $.get('/api/payments', function(payments) {
             let html = payments.map(p => `
                 <tr>
                     <td>${p.id}</td>
-                    <td>${p.memberName}</td>
+                    <td>${p.member?.name || 'N/A'}</td>
                     <td>$${p.amount}</td>
                     <td>${p.concept}</td>
-                    <td>${p.date}</td>
+                    <td>${p.payment_date}</td>
                     <td><span class="badge bg-success">${p.status}</span></td>
                     <td><button class="btn btn-sm btn-danger" onclick="deletePayment(${p.id})"><i class="fas fa-trash"></i></button></td>
                 </tr>
             `).join('');
             $('#paymentsTableBody').html(html);
+        });
+    }
+
+    // ============ GUARDAR MIEMBRO ============
+    function saveMember() {
+        let id = $('#memberId').val();
+        let data = {
+            name: $('#memberName').val(),
+            email: $('#memberEmail').val(),
+            phone: $('#memberPhone').val(),
+            plan: $('#memberPlan').val()
+        };
+
+        if (id) {
+            $.ajax({
+                url: `/api/members/${id}`,
+                method: 'PUT',
+                data: data,
+                success: function() {
+                    Swal.fire('Actualizado', 'Miembro actualizado', 'success');
+                    $('#memberModal').modal('hide');
+                    loadMembers();
+                    updateDashboardStats();
+                }
+            });
+        } else {
+            $.post('/api/members', data, function() {
+                Swal.fire('Creado', 'Miembro creado', 'success');
+                $('#memberModal').modal('hide');
+                loadMembers();
+                updateDashboardStats();
+            }).fail(function(xhr) {
+                Swal.fire('Error', xhr.responseJSON?.message || 'Error al crear', 'error');
+            });
         }
-        
-        function savePayment() {
-            const memberId = $('#paymentMember').val();
-            const member = members.find(m => m.id == memberId);
-            const payment = {
-                id: nextPaymentId++,
-                memberId: parseInt(memberId),
-                memberName: member.name,
-                amount: parseInt($('#paymentAmount').val()),
-                concept: $('#paymentConcept').val(),
-                date: new Date().toISOString().split('T')[0],
-                status: 'pagado'
-            };
-            payments.push(payment);
+    }
+
+    function editMember(id) {
+        $.get(`/api/members/${id}`, function(member) {
+            $('#memberId').val(member.id);
+            $('#memberName').val(member.name);
+            $('#memberEmail').val(member.email);
+            $('#memberPhone').val(member.phone);
+            $('#memberPlan').val(member.plan);
+            $('#memberModal').modal('show');
+        });
+    }
+
+    function viewMember(id) {
+        $.get(`/api/members/${id}`, function(member) {
+            Swal.fire({
+                title: member.name,
+                html: `<p>Email: ${member.email}</p><p>Teléfono: ${member.phone}</p><p>Plan: ${member.plan}</p><p>Estado: ${member.status}</p>`,
+                icon: 'info'
+            });
+        });
+    }
+
+    function deleteMember(id) {
+        Swal.fire({
+            title: '¿Eliminar?',
+            text: "No se puede deshacer",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Sí'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `/api/members/${id}`,
+                    method: 'DELETE',
+                    success: function() {
+                        Swal.fire('Eliminado', '', 'success');
+                        loadMembers();
+                        updateDashboardStats();
+                    }
+                });
+            }
+        });
+    }
+
+    // ============ GUARDAR ENTRENADOR ============
+    function saveTrainer() {
+        let data = {
+            name: $('#trainerName').val(),
+            specialty: $('#trainerSpecialty').val(),
+            email: $('#trainerEmail').val()
+        };
+        $.post('/api/trainers', data, function() {
+            Swal.fire('Creado', 'Entrenador agregado', 'success');
+            $('#trainerModal').modal('hide');
+            loadTrainers();
+        }).fail(function(xhr) {
+            Swal.fire('Error', xhr.responseJSON?.message || 'Error al crear', 'error');
+        });
+    }
+
+    function deleteTrainer(id) {
+        Swal.fire({
+            title: '¿Eliminar?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Sí'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `/api/trainers/${id}`,
+                    method: 'DELETE',
+                    success: function() {
+                        Swal.fire('Eliminado', '', 'success');
+                        loadTrainers();
+                    }
+                });
+            }
+        });
+    }
+
+    // ============ GUARDAR PAGO ============
+    function savePayment() {
+        let data = {
+            member_id: $('#paymentMember').val(),
+            amount: $('#paymentAmount').val(),
+            concept: $('#paymentConcept').val(),
+            payment_method: 'efectivo'
+        };
+        $.post('/api/payments', data, function() {
+            Swal.fire('Registrado', 'Pago registrado', 'success');
             $('#paymentModal').modal('hide');
             loadPayments();
-            updateStats();
-            Swal.fire('Registrado', 'Pago registrado', 'success');
-            resetPaymentForm();
-        }
-        
-        function deletePayment(id) { payments = payments.filter(p => p.id !== id); loadPayments(); updateStats(); Swal.fire('Eliminado', '', 'success'); }
-        function resetPaymentForm() { $('#paymentForm')[0]?.reset(); }
-        
-        // ============ EQUIPOS ============
-        function loadEquipment() {
-            let html = equipment.map(e => `
-                <div class="col-md-3 mb-3">
-                    <div class="equipment-card">
-                        <h5 class="text-white">${e.name}</h5>
-                        <p><i class="fas fa-hashtag"></i> Cantidad: ${e.quantity}</p>
-                        <p><span class="badge ${e.status === 'Bueno' ? 'bg-success' : 'bg-warning'}">${e.status}</span></p>
-                        <button class="btn btn-sm btn-danger" onclick="deleteEquipment(${e.id})"><i class="fas fa-trash"></i> Eliminar</button>
-                    </div>
-                </div>
-            `).join('');
-            $('#equipmentGrid').html(html);
-        }
-        
-        function saveEquipment() {
-            const equip = {
-                id: nextEquipmentId++,
-                name: $('#equipmentName').val(),
-                quantity: parseInt($('#equipmentQuantity').val()),
-                status: $('#equipmentStatus').val()
-            };
-            equipment.push(equip);
-            $('#equipmentModal').modal('hide');
-            loadEquipment();
-            Swal.fire('Agregado', 'Equipo agregado', 'success');
-            resetEquipmentForm();
-        }
-        
-        function deleteEquipment(id) { equipment = equipment.filter(e => e.id !== id); loadEquipment(); Swal.fire('Eliminado', '', 'success'); }
-        function resetEquipmentForm() { $('#equipmentForm')[0]?.reset(); }
-        
-        // ============ REPORTES ============
-        function generateMemberReport() {
-            const html = `<h5>Reporte de Miembros</h5><table class="table"><thead><tr><th>Nombre</th><th>Plan</th><th>Estado</th></tr></thead><tbody>${members.map(m => `<tr><td>${m.name}</td><td>${m.plan}</td><td>${m.status}</td></tr>`).join('')}</tbody></table>`;
-            $('#reportResults').html(html).show();
-        }
-        
-        function generateFinancialReport() {
-            const total = payments.reduce((sum, p) => sum + p.amount, 0);
-            const html = `<h5>Reporte Financiero</h5><p>Total ingresos: <strong>$${total}</strong></p><p>Total transacciones: ${payments.length}</p>`;
-            $('#reportResults').html(html).show();
-        }
-        
-        // ============ CONFIGURACIÓN ============
-        function saveSettings() { Swal.fire('Guardado', 'Configuración actualizada', 'success'); }
-        function showProfile() { Swal.fire('Perfil', 'Información del usuario', 'info'); }
-        function showSettings() { showSection('settings'); }
-        function filterMembers(type) { showSection('members'); }
-        function showPayments() { showSection('payments'); }
-        function showClasses() { showSection('classes'); }
-        function scanQRCode() { Swal.fire('Escanear QR', 'Función en desarrollo', 'info'); }
-        function sendBulkSMS() { Swal.fire('Enviar Comunicado', 'Mensaje enviado a todos los miembros', 'success'); }
-        
-        // ============ INICIALIZACIÓN ============
-        $(document).ready(function() {
-            updateDateTime();
-            setInterval(updateDateTime, 1000);
-            updateStats();
-            updateCharts();
-            loadRecentActivities();
-            
-            $('#memberSearch, #membershipTypeFilter, #memberStatusFilter').on('keyup change', function() {
-                const search = $('#memberSearch').val().toLowerCase();
-                const plan = $('#membershipTypeFilter').val();
-                const status = $('#memberStatusFilter').val();
-                let filtered = members.filter(m => (!search || m.name.toLowerCase().includes(search)) && (!plan || m.plan === plan) && (!status || m.status === status));
-                $('#membersTableBody').html(filtered.map(m => `<tr><td>${m.id}</td><td><strong>${m.name}</strong><br><small>${m.email}</small></td><td>${m.phone}</td><td><span class="badge bg-info">${m.plan}</span></td><td>${m.expiryDate}</td><td><span class="badge ${m.status === 'activo' ? 'bg-success' : 'bg-secondary'}">${m.status}</span></td><td><button class="btn btn-sm btn-info" onclick="viewMember(${m.id})"><i class="fas fa-eye"></i></button> <button class="btn btn-sm btn-warning" onclick="editMember(${m.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-sm btn-danger" onclick="deleteMember(${m.id})"><i class="fas fa-trash"></i></button></td></tr>`).join(''));
-            });
-            
-            // Llenar selects
-            $('#paymentMember').html(members.map(m => `<option value="${m.id}">${m.name}</option>`));
-            $('#classTrainer').html(trainers.map(t => `<option>${t.name}</option>`));
+            updateDashboardStats();
+        }).fail(function(xhr) {
+            Swal.fire('Error', xhr.responseJSON?.message || 'Error al registrar', 'error');
         });
-    </script>
+    }
+
+    function deletePayment(id) {
+        Swal.fire({
+            title: '¿Eliminar pago?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Sí'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `/api/payments/${id}`,
+                    method: 'DELETE',
+                    success: function() {
+                        Swal.fire('Eliminado', '', 'success');
+                        loadPayments();
+                        updateDashboardStats();
+                    }
+                });
+            }
+        });
+    }
+
+    // ============ DASHBOARD ESTADÍSTICAS ============
+    function updateDashboardStats() {
+        $.get('/api/dashboard/stats', function(stats) {
+            $('#totalMembers').text(stats.totalMembers);
+            $('#monthlyIncome').text(`$${stats.monthlyIncome}`);
+            $('#activeClasses').text(stats.activeClasses);
+            $('#retentionRate').text(stats.retentionRate + '%');
+        });
+    }
+
+    // ============ ACTUALIZAR FUNCIONES EXISTENTES ============
+    function updateStats() {
+        updateDashboardStats();
+    }
+
+    function loadClasses() {
+        // Si hay endpoint para clases, lo agregas
+        console.log('Cargar clases desde BD');
+    }
+
+    function loadEquipment() {
+        // Si hay endpoint para equipos, lo agregas
+        console.log('Cargar equipos desde BD');
+    }
+
+    function registerAttendance() {
+        Swal.fire('Registrar Asistencia', 'Función en desarrollo con BD', 'info');
+    }
+
+    function generateMemberReport() {
+        Swal.fire('Reporte de Miembros', 'Función en desarrollo', 'info');
+    }
+
+    function generateFinancialReport() {
+        Swal.fire('Reporte Financiero', 'Función en desarrollo', 'info');
+    }
+
+    // ============ INICIALIZACIÓN ============
+    $(document).ready(function() {
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+        updateDashboardStats();
+        
+        // Cargar datos iniciales
+        loadMembers();
+        loadTrainers();
+        loadPayments();
+        
+        // Llenar selects
+        $.get('/api/members', function(members) {
+            $('#paymentMember').html(members.map(m => `<option value="${m.id}">${m.name}</option>`));
+        });
+    });
+</script>
 </body>
 </html>
