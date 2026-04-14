@@ -5,100 +5,87 @@ namespace App\Http\Controllers;
 
 use App\Models\Member;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 
 class MemberController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $query = Member::query();
-        
-        if ($request->has('search')) {
-            $query->where('name', 'LIKE', "%{$request->search}%")
-                  ->orWhere('email', 'LIKE', "%{$request->search}%");
-        }
-        if ($request->has('plan') && $request->plan) {
-            $query->where('plan', $request->plan);
-        }
-        if ($request->has('status') && $request->status) {
-            $query->where('status', $request->status);
-        }
-        if ($request->has('expiring') && $request->expiring) {
-            $query->where('expiry_date', '<=', Carbon::now()->addDays(7))
-                  ->where('expiry_date', '>=', Carbon::now());
-        }
-        
-        $members = $query->get();
+        $members = Member::all();
         return response()->json($members);
     }
-
+    
     public function store(Request $request)
     {
+        // Validación
         $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => 'required|email|unique:members',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users',
             'phone' => 'nullable|string',
             'plan' => 'required|string',
-            'status' => 'required|string',
             'birth_date' => 'nullable|date',
             'address' => 'nullable|string'
         ]);
-
+        
+        // Crear miembro con todos los campos
         $member = Member::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'plan' => $request->plan,
-            'status' => $request->status,
-            'birth_date' => $request->birth_date,
-            'address' => $request->address,
+            'status' => 'activo',
             'expiry_date' => Carbon::now()->addMonth(),
             'attendance_count' => 0,
-            'registration_date' => Carbon::now()
+            'registration_date' => Carbon::now(),
+            'birth_date' => $request->birth_date,
+            'address' => $request->address,
+            'password' => Hash::make('12345678'), // Contraseña por defecto
+            'role' => 'member'
         ]);
-
-        return response()->json(['success' => true, 'data' => $member, 'message' => 'Miembro creado']);
+        
+        return response()->json([
+            'success' => true, 
+            'data' => $member,
+            'message' => 'Miembro creado exitosamente'
+        ], 201);
     }
-
+    
     public function show($id)
     {
-        $member = Member::findOrFail($id);
+        $member = Member::with(['attendances', 'payments'])->findOrFail($id);
         return response()->json($member);
     }
-
+    
     public function update(Request $request, $id)
     {
         $member = Member::findOrFail($id);
         
         $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => 'required|email|unique:members,email,' . $id,
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $id,
             'phone' => 'nullable|string',
-            'plan' => 'required|string',
-            'status' => 'required|string',
-            'birth_date' => 'nullable|date',
-            'address' => 'nullable|string'
+            'plan' => 'sometimes|string',
+            'status' => 'sometimes|string'
         ]);
-
+        
         $member->update($request->all());
-
-        return response()->json(['success' => true, 'data' => $member, 'message' => 'Miembro actualizado']);
+        
+        return response()->json([
+            'success' => true, 
+            'data' => $member,
+            'message' => 'Miembro actualizado'
+        ]);
     }
-
+    
     public function destroy($id)
     {
         $member = Member::findOrFail($id);
         $member->delete();
-        return response()->json(['success' => true, 'message' => 'Miembro eliminado']);
-    }
-
-    public function renew(Request $request, $id)
-    {
-        $member = Member::findOrFail($id);
-        $months = $request->input('months', 1);
-        $member->expiry_date = Carbon::parse($member->expiry_date)->addMonths($months);
-        $member->save();
         
-        return response()->json(['success' => true, 'message' => 'Membresía renovada', 'expiry_date' => $member->expiry_date]);
+        return response()->json([
+            'success' => true, 
+            'message' => 'Miembro eliminado'
+        ]);
     }
 }

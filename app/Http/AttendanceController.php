@@ -10,98 +10,103 @@ use Carbon\Carbon;
 
 class AttendanceController extends Controller
 {
+    // Listar asistencias
     public function index(Request $request)
     {
         $query = Attendance::with('member');
         
         if ($request->has('date')) {
-            $query->whereDate('date', $request->date);
+            $query->whereDate('check_in', $request->date);
         }
         
-        $attendances = $query->orderBy('check_in_time', 'desc')->get();
+        if ($request->has('member_id')) {
+            $query->where('member_id', $request->member_id);
+        }
+        
+        $attendances = $query->orderBy('check_in', 'desc')->get();
         return response()->json($attendances);
     }
-
-    public function register(Request $request)
+    
+    // REGISTRAR ENTRADA (CHECK-IN)
+    public function checkIn(Request $request)
     {
         $request->validate([
-            'member_id' => 'required|exists:members,id',
-            'type' => 'required|in:checkin,checkout',
-            'method' => 'required|in:manual,qr,app'
+            'member_id' => 'required|exists:users,id',
+            'method' => 'nullable|string'
         ]);
-
-        $member = Member::findOrFail($request->member_id);
-        $today = Carbon::today();
-        $now = Carbon::now();
-
-        if ($request->type === 'checkin') {
-            // Verificar si ya hizo check-in hoy
-            $existing = Attendance::where('member_id', $request->member_id)
-                ->whereDate('date', $today)
-                ->whereNull('check_out_time')
-                ->first();
-                
-            if ($existing) {
-                return response()->json(['success' => false, 'message' => 'Ya tiene un check-in activo'], 400);
-            }
-
-            $attendance = Attendance::create([
-                'member_id' => $request->member_id,
-                'date' => $today,
-                'check_in_time' => $now,
-                'check_in_method' => $request->method
-            ]);
+        
+        // Verificar si ya tiene entrada hoy sin salida
+        $existing = Attendance::where('member_id', $request->member_id)
+            ->whereDate('check_in', Carbon::today())
+            ->whereNull('check_out')
+            ->first();
             
-            // Incrementar contador de asistencias del miembro
-            $member->increment('attendance_count');
-            
-            return response()->json(['success' => true, 'data' => $attendance, 'message' => 'Check-in registrado']);
-        } 
-        else {
-            // Checkout
-            $attendance = Attendance::where('member_id', $request->member_id)
-                ->whereDate('date', $today)
-                ->whereNull('check_out_time')
-                ->first();
-                
-            if (!$attendance) {
-                return response()->json(['success' => false, 'message' => 'No hay check-in activo para hoy'], 400);
-            }
-
-            $attendance->update([
-                'check_out_time' => $now,
-                'check_out_method' => $request->method
-            ]);
-            
-            return response()->json(['success' => true, 'data' => $attendance, 'message' => 'Check-out registrado']);
+        if ($existing) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El miembro ya tiene una entrada activa hoy'
+            ], 400);
         }
+        
+        $attendance = Attendance::create([
+            'member_id' => $request->member_id,
+            'check_in' => Carbon::now(),
+            'check_out' => null,
+            'check_in_method' => $request->get('method', 'manual')
+        ]);
+        
+        // Incrementar contador de asistencias del miembro
+        $member = Member::find($request->member_id);
+        if ($member) {
+            $member->increment('attendance_count');
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => $attendance,
+            'message' => 'Check-in registrado exitosamente'
+        ]);
     }
-
-    public function checkout($id)
+    
+    // REGISTRAR SALIDA (CHECK-OUT)
+    public function checkOut(Request $request, $id)
     {
         $attendance = Attendance::findOrFail($id);
         
-        if ($attendance->check_out_time) {
-            return response()->json(['success' => false, 'message' => 'Ya tiene check-out registrado'], 400);
+        if ($attendance->check_out) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ya tiene registro de salida'
+            ], 400);
         }
-
+        
         $attendance->update([
-            'check_out_time' => Carbon::now(),
-            'check_out_method' => 'manual'
+            'check_out' => Carbon::now(),
+            'check_out_method' => $request->get('method', 'manual')
         ]);
-
-        return response()->json(['success' => true, 'message' => 'Check-out registrado']);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $attendance,
+            'message' => 'Check-out registrado exitosamente'
+        ]);
     }
-
+    
+    // ESTADÍSTICAS
     public function stats(Request $request)
     {
         $date = $request->get('date', Carbon::today());
-        $totalMembers = Member::where('status', 'activo')->count();
-        $todayAttendance = Attendance::whereDate('date', $date)->count();
+        $totalMembers = Member::count();
+        $todayAttendance = Attendance::whereDate('check_in', $date)->count();
+        $activeNow = Attendance::whereNull('check_out')
+            ->whereDate('check_in', Carbon::today())
+            ->count();
+        
         $percentage = $totalMembers > 0 ? round(($todayAttendance / $totalMembers) * 100) : 0;
-
+        
         return response()->json([
-            'count' => $todayAttendance,
+            'today_attendance' => $todayAttendance,
+            'active_now' => $activeNow,
             'percentage' => $percentage,
             'total_members' => $totalMembers
         ]);

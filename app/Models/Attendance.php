@@ -5,42 +5,34 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class Attendance extends Model
 {
     use HasFactory;
-
+    
+    protected $table = 'attendees';
+    
     protected $fillable = [
-        'member_id', 'date', 'check_in_time', 'check_out_time',
-        'check_in_method', 'check_out_method', 'class_id', 'notes'
+        'member_id', 'check_in', 'check_out'
     ];
-
+    
     protected $casts = [
-        'date' => 'date',
-        'check_in_time' => 'datetime',
-        'check_out_time' => 'datetime'
+        'check_in' => 'datetime',
+        'check_out' => 'datetime'
     ];
-
+    
     public function member()
     {
-        return $this->belongsTo(Member::class);
+        return $this->belongsTo(Member::class, 'member_id');
     }
-
-    public function class()
-    {
-        return $this->belongsTo(GymClass::class);
-    }
-
-    public function scopeToday($query)
-    {
-        return $query->whereDate('date', Carbon::today());
-    }
-
+    
     public function getDurationAttribute()
     {
-        if ($this->check_out_time) {
-            return $this->check_in_time->diffInMinutes($this->check_out_time) . ' minutos';
+        if ($this->check_out) {
+            $minutes = $this->check_in->diffInMinutes($this->check_out);
+            $hours = floor($minutes / 60);
+            $mins = $minutes % 60;
+            return $hours . 'h ' . $mins . 'min';
         }
         return 'En curso';
     }

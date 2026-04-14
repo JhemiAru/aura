@@ -9,13 +9,16 @@ use Illuminate\Database\Eloquent\Model;
 class Equipment extends Model
 {
     use HasFactory;
-
+    
+    // USAR LA TABLA 'equipment' DE MI BASE DE DATOS
+    protected $table = 'equipment';
+    
     protected $fillable = [
         'name', 'quantity', 'status', 'purchase_date', 'purchase_price',
         'brand', 'model', 'serial_number', 'last_maintenance',
         'next_maintenance', 'location', 'notes'
     ];
-
+    
     protected $casts = [
         'quantity' => 'integer',
         'purchase_price' => 'decimal:2',
@@ -23,20 +26,16 @@ class Equipment extends Model
         'last_maintenance' => 'date',
         'next_maintenance' => 'date'
     ];
-
-    public function scopeNeedsMaintenance($query)
-    {
-        return $query->where('next_maintenance', '<=', now()->addDays(30));
-    }
-
+    
+    // Estado formateado con badge
     public function getStatusBadgeAttribute()
     {
-        return match($this->status) {
+        $badges = [
             'Bueno' => '<span class="badge bg-success">✓ Bueno</span>',
             'Regular' => '<span class="badge bg-warning">⚠ Regular</span>',
             'Mantenimiento' => '<span class="badge bg-info">🔧 Mantenimiento</span>',
-            'Dañado' => '<span class="badge bg-danger">✗ Dañado</span>',
-            default => '<span class="badge bg-secondary">Desconocido</span>',
-        };
+            'Dañado' => '<span class="badge bg-danger">✗ Dañado</span>'
+        ];
+        return $badges[$this->status] ?? '<span class="badge bg-secondary">Desconocido</span>';
     }
 }

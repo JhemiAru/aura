@@ -9,29 +9,47 @@ use Illuminate\Database\Eloquent\Model;
 class Payment extends Model
 {
     use HasFactory;
-
+    
+    // USAR LA TABLA 'payments' DE MI BASE DE DATOS
+    protected $table = 'payments';
+    
     protected $fillable = [
         'member_id', 'amount', 'concept', 'payment_date', 'status',
         'payment_method', 'receipt_number', 'transaction_id', 'notes'
     ];
-
+    
     protected $casts = [
         'amount' => 'decimal:2',
         'payment_date' => 'date'
     ];
-
+    
+    // Relación con el miembro
     public function member()
     {
-        return $this->belongsTo(Member::class);
+        return $this->belongsTo(Member::class, 'member_id');
     }
-
-    public function scopePaid($query)
+    
+    // Método de pago formateado
+    public function getPaymentMethodFormattedAttribute()
     {
-        return $query->where('status', 'pagado');
+        $methods = [
+            'efectivo' => '💰 Efectivo',
+            'tarjeta' => '💳 Tarjeta',
+            'transferencia' => '🏦 Transferencia',
+            'app' => '📱 App Móvil'
+        ];
+        return $methods[$this->payment_method] ?? $this->payment_method;
     }
-
-    public function scopePending($query)
+    
+    // Estado formateado
+    public function getStatusFormattedAttribute()
     {
-        return $query->where('status', 'pendiente');
+        $statuses = [
+            'pagado' => '✅ Pagado',
+            'pendiente' => '⏳ Pendiente',
+            'vencido' => '❌ Vencido',
+            'reembolsado' => '🔄 Reembolsado'
+        ];
+        return $statuses[$this->status] ?? $this->status;
     }
 }
