@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Member;
 use App\Models\Payment;
 use App\Models\Attendance;
+use App\Models\Membership;
 
 class DashboardController extends Controller
 {
@@ -26,6 +27,12 @@ class DashboardController extends Controller
         $totalMembers = Member::count();
         $totalPayments = Payment::sum('amount');
         $todayAttendance = Attendance::whereDate('check_in', today())->count();
+        
+        // Datos adicionales para la vista mejorada
+        $members = Member::with('membership')->get();
+        $payments = Payment::with('member')->get();
+        $attendances = Attendance::with('member')->get();
+        $memberships = Membership::all();
 
         // Según el rol, mostrar diferentes vistas
         if ($role == 'super_admin') {
@@ -35,7 +42,8 @@ class DashboardController extends Controller
             
             return view('dashboard.super_admin', compact(
                 'totalMembers', 'totalPayments', 'todayAttendance',
-                'totalUsers', 'totalAdmins', 'recentPayments'
+                'totalUsers', 'totalAdmins', 'recentPayments',
+                'members', 'payments', 'attendances', 'memberships'
             ));
         }
         
@@ -47,7 +55,8 @@ class DashboardController extends Controller
             
             return view('dashboard.admin', compact(
                 'totalMembers', 'totalPayments', 'todayAttendance',
-                'recentMembers', 'pendingRenewals'
+                'recentMembers', 'pendingRenewals',
+                'members', 'payments', 'attendances', 'memberships'
             ));
         }
         
