@@ -46,5 +46,14 @@ class RoleSeeder extends Seeder
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-    }
+
+        DB::table('roles')->insert([
+            ['name' => 'super_admin', 'description' => 'Super Administrador - Control total', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'admin', 'description' => 'Administrador - Gestión del gimnasio', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'trainer', 'description' => 'Entrenador - Gestión de clases y ejercicios', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'user', 'description' => 'Usuario normal - Acceso limitado', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+  
 }
+    }

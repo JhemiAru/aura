@@ -182,3 +182,8 @@ Route::get('/test-dashboard', function () {
     }
     return "No se encontró el usuario";
 });
+// Ruta GET para logout (solo para pruebas)
+Route::get('/logout', function () {
+    Auth::logout();
+    return redirect('/login');
+})->name('logout.get');
