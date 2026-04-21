@@ -1,5 +1,5 @@
 <?php
-// routes/api.php
+// routes/web.php
 
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\TrainerController;
@@ -11,7 +11,13 @@ use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 // =============================================
-// RUTAS PARA ASISTENCIAS (LAS MÁS IMPORTANTES)
+// RUTAS PRINCIPALES (VISTAS)
+// =============================================
+Route::get('/', [DashboardController::class, 'index']);
+Route::get('/dashboard', [DashboardController::class, 'index']);
+
+// =============================================
+// RUTAS PARA ASISTENCIAS
 // =============================================
 Route::post('/attendances/checkin', [AttendanceController::class, 'checkIn']);
 Route::post('/attendances/checkout/{id}', [AttendanceController::class, 'checkOut']);
@@ -53,6 +59,7 @@ Route::post('/payments', [PaymentController::class, 'store']);
 Route::get('/payments/{id}', [PaymentController::class, 'show']);
 Route::put('/payments/{id}', [PaymentController::class, 'update']);
 Route::delete('/payments/{id}', [PaymentController::class, 'destroy']);
+Route::get('/payments/{id}/receipt', [PaymentController::class, 'generateReceipt']);
 
 // =============================================
 // RUTAS PARA EQUIPOS
@@ -67,7 +74,3 @@ Route::delete('/equipment/{id}', [EquipmentController::class, 'destroy']);
 // RUTAS PARA DASHBOARD
 // =============================================
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
-
-// Ruta principal para la vista
-Route::get('/', [DashboardController::class, 'index']);
-Route::get('/dashboard', [DashboardController::class, 'index']);

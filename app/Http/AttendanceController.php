@@ -10,7 +10,7 @@ use Carbon\Carbon;
 
 class AttendanceController extends Controller
 {
-    // Listar asistencias
+    // ============ LISTAR ASISTENCIAS ============
     public function index(Request $request)
     {
         $query = Attendance::with('member');
@@ -27,7 +27,7 @@ class AttendanceController extends Controller
         return response()->json($attendances);
     }
     
-    // REGISTRAR ENTRADA (CHECK-IN)
+    // ============ REGISTRAR ENTRADA (CHECK-IN) ============
     public function checkIn(Request $request)
     {
         $request->validate([
@@ -68,7 +68,7 @@ class AttendanceController extends Controller
         ]);
     }
     
-    // REGISTRAR SALIDA (CHECK-OUT)
+    // ============ REGISTRAR SALIDA (CHECK-OUT) ============
     public function checkOut(Request $request, $id)
     {
         $attendance = Attendance::findOrFail($id);
@@ -92,11 +92,62 @@ class AttendanceController extends Controller
         ]);
     }
     
-    // ESTADÍSTICAS
+    // ============ REGISTRO RÁPIDO (Entrada o Salida) ============
+    public function quickRegister(Request $request)
+    {
+        $request->validate([
+            'member_id' => 'required|exists:users,id',
+            'type' => 'required|in:checkin,checkout',
+            'method' => 'nullable|string'
+        ]);
+        
+        if ($request->type === 'checkin') {
+            return $this->checkIn($request);
+        } else {
+            // Buscar la entrada activa de hoy
+            $attendance = Attendance::where('member_id', $request->member_id)
+                ->whereDate('check_in', Carbon::today())
+                ->whereNull('check_out')
+                ->first();
+                
+            if (!$attendance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontró una entrada activa para hoy'
+                ], 404);
+            }
+            
+            return $this->checkOut($request, $attendance->id);
+        }
+    }
+    
+    // ============ ASISTENCIAS DE HOY ============
+    public function today()
+    {
+        $attendances = Attendance::with('member')
+            ->whereDate('check_in', Carbon::today())
+            ->orderBy('check_in', 'desc')
+            ->get();
+            
+        return response()->json($attendances);
+    }
+    
+    // ============ ASISTENCIAS POR MIEMBRO ============
+    public function memberAttendance($memberId)
+    {
+        $attendances = Attendance::with('member')
+            ->where('member_id', $memberId)
+            ->orderBy('check_in', 'desc')
+            ->get();
+            
+        return response()->json($attendances);
+    }
+    
+    // ============ ESTADÍSTICAS DE ASISTENCIA ============
     public function stats(Request $request)
     {
         $date = $request->get('date', Carbon::today());
-        $totalMembers = Member::count();
+        $totalMembers = Member::where('status', 'activo')->count();
         $todayAttendance = Attendance::whereDate('check_in', $date)->count();
         $activeNow = Attendance::whereNull('check_out')
             ->whereDate('check_in', Carbon::today())

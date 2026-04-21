@@ -907,10 +907,9 @@
                     <div class="mb-3">
                         <label class="text-white-50">Método de Pago</label>
                         <select id="paymentMethod" class="form-select">
-                            <option value="efectivo">Efectivo</option>
-                            <option value="tarjeta">Tarjeta de Crédito</option>
-                            <option value="transferencia">Transferencia Bancaria</option>
-                            <option value="app">App Móvil</option>
+                            <option value="cash">Efectivo</option>
+                            <option value="card">Tarjeta de Crédito</option>
+                            <option value="transfer">Transferencia Bancaria</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -1001,6 +1000,118 @@
                 icon.removeClass('fa-chevron-right').addClass('fa-chevron-left');
             }
         }
+
+        // ============ ACTUALIZAR ESTADÍSTICAS DEL DASHBOARD ============
+function updateDashboardStats() {
+    $.get('/api/dashboard/stats', function(response) {
+        $('#totalMembers').text(response.totalMembers || 0);
+        $('#monthlyIncome').text('$' + (response.monthlyIncome || 0));
+        $('#todayAttendance').text(response.todayAttendance || 0);
+        $('#retentionRate').text((response.retentionRate || 0) + '%');
+    }).fail(function() {
+        console.log('Error cargando estadísticas');
+    });
+}
+
+// Modificar la función saveMember para actualizar estadísticas
+function saveMember() {
+    let id = $('#memberId').val();
+    let data = {
+        name: $('#memberName').val(),
+        email: $('#memberEmail').val(),
+        phone: $('#memberPhone').val(),
+        plan: $('#memberPlan').val(),
+        status: $('#memberStatus').val(),
+        birth_date: $('#memberBirthDate').val()
+    };
+    
+    if (!data.name || !data.email) {
+        Swal.fire('Error', 'Nombre y email son obligatorios', 'error');
+        return;
+    }
+    
+    showLoading();
+    let url = id ? `/api/members/${id}` : '/api/members';
+    let method = id ? 'PUT' : 'POST';
+    
+    $.ajax({
+        url: url,
+        method: method,
+        data: data,
+        success: function(response) {
+            Swal.fire('Éxito', id ? 'Miembro actualizado' : 'Miembro creado', 'success');
+            $('#memberModal').modal('hide');
+            loadMembers();
+            updateDashboardStats();  // 👈 ACTUALIZAR ESTADÍSTICAS
+            loadUsersTable();        // 👈 ACTUALIZAR TABLA DE USUARIOS
+            hideLoading();
+        },
+        error: function(xhr) {
+            hideLoading();
+            Swal.fire('Error', xhr.responseJSON?.message || 'Error al guardar', 'error');
+        }
+    });
+}
+
+// Modificar la función registerQuickAttendance
+function registerQuickAttendance() {
+    let memberId = $('#attendanceMemberId').val();
+    let type = $('#attendanceType').val();
+    let method = $('#attendanceMethod').val();
+    
+    if (!memberId) {
+        Swal.fire('Error', 'Seleccione un miembro', 'error');
+        return;
+    }
+    
+    showLoading();
+    
+    if (type === 'checkin') {
+        $.ajax({
+            url: '/api/attendances/checkin',
+            method: 'POST',
+            data: { member_id: memberId, method: method },
+            success: function(response) {
+                Swal.fire('Check-in', 'Entrada registrada exitosamente', 'success');
+                $('#quickAttendanceModal').modal('hide');
+                loadAttendance();
+                loadAttendanceStats();
+                updateDashboardStats();  // 👈 ACTUALIZAR ESTADÍSTICAS
+                hideLoading();
+            },
+            error: function(xhr) {
+                hideLoading();
+                Swal.fire('Error', xhr.responseJSON?.message || 'Error al registrar entrada', 'error');
+            }
+        });
+    } else {
+        $.get(`/api/attendances?member_id=${memberId}&date=${new Date().toISOString().split('T')[0]}`, function(attendancesList) {
+            let activeAttendance = attendancesList.find(a => a.member_id == memberId && !a.check_out);
+            if (!activeAttendance) {
+                hideLoading();
+                Swal.fire('Error', 'No se encontró una entrada activa para hoy', 'error');
+                return;
+            }
+            $.ajax({
+                url: `/api/attendances/checkout/${activeAttendance.id}`,
+                method: 'POST',
+                data: { method: method },
+                success: function(response) {
+                    Swal.fire('Check-out', 'Salida registrada exitosamente', 'success');
+                    $('#quickAttendanceModal').modal('hide');
+                    loadAttendance();
+                    loadAttendanceStats();
+                    updateDashboardStats();  // 👈 ACTUALIZAR ESTADÍSTICAS
+                    hideLoading();
+                },
+                error: function(xhr) {
+                    hideLoading();
+                    Swal.fire('Error', xhr.responseJSON?.message || 'Error al registrar salida', 'error');
+                }
+            });
+        });
+    }
+}
         
         // ==================== FUNCIONES PARA LA TABLA DE USUARIOS ====================
         function loadUsersTable() {
