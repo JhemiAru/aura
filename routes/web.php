@@ -187,3 +187,14 @@ Route::get('/logout', function () {
     Auth::logout();
     return redirect('/login');
 })->name('logout.get');
+
+Route::get('/force-logout', function () {
+    Auth::logout();
+    return redirect('/login');
+});
+
+Route::get('/salir', function () {
+    Auth::logout();
+    return redirect('/login');
+    
+});

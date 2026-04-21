@@ -16,25 +16,23 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         
-        // Verificación manual de roles (sin middleware)
+        // Verificación manual de roles
         if (!$user || !$user->role) {
             abort(403, 'Acceso no autorizado');
         }
         
         $role = $user->role->name;
 
-        // Estadísticas comunes
+        // Datos comunes para todas las vistas
         $totalMembers = Member::count();
         $totalPayments = Payment::sum('amount');
         $todayAttendance = Attendance::whereDate('check_in', today())->count();
-        
-        // Datos adicionales para la vista mejorada
         $members = Member::with('membership')->get();
         $payments = Payment::with('member')->get();
         $attendances = Attendance::with('member')->get();
         $memberships = Membership::all();
 
-        // Según el rol, mostrar diferentes vistas
+        // Redirigir según el rol
         if ($role == 'super_admin') {
             $totalUsers = User::count();
             $totalAdmins = User::where('role_id', 2)->count();
@@ -57,6 +55,16 @@ class DashboardController extends Controller
                 'totalMembers', 'totalPayments', 'todayAttendance',
                 'recentMembers', 'pendingRenewals',
                 'members', 'payments', 'attendances', 'memberships'
+            ));
+        }
+        
+        elseif ($role == 'trainer') {
+            // Obtener los socios asignados a este entrenador
+            // Por ahora, todos los socios (puedes filtrar por trainer_id después)
+            $myClients = Member::where('status', 'active')->get();
+            
+            return view('dashboard.trainer', compact(
+                'user', 'myClients', 'members', 'payments', 'attendances', 'memberships'
             ));
         }
         
