@@ -11,12 +11,13 @@ use App\Models\Membership;
 use Illuminate\Http\Request;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('dashboard');
 });
 
 // Dashboard principal
 Route::middleware(['auth'])->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
 
 // ==================== API RUTAS PARA EL DASHBOARD ====================
